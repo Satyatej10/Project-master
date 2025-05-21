@@ -1,4 +1,3 @@
-// src/redux/authSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -35,12 +34,13 @@ export const logout = createAsyncThunk('auth/logout', async () => {
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState: { user: null, isAuthenticated: false, loading: false, error: null },
+  initialState: { user: null, isAuthenticated: false, isAuthLoading: true, error: null },
   reducers: {
     setUser(state, action) {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
-      // Optionally persist to localStorage
+      state.isAuthLoading = false;
+      // Persist to localStorage
       if (action.payload) {
         localStorage.setItem('user', JSON.stringify(action.payload));
       } else {
@@ -54,35 +54,35 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
-        state.loading = true;
+        state.isAuthLoading = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.user = action.payload;
         state.isAuthenticated = true;
-        state.loading = false;
+        state.isAuthLoading = false;
       })
       .addCase(login.rejected, (state, action) => {
         state.error = action.payload;
-        state.loading = false;
+        state.isAuthLoading = false;
       })
       .addCase(signup.pending, (state) => {
-        state.loading = true;
+        state.isAuthLoading = true;
         state.error = null;
       })
       .addCase(signup.fulfilled, (state, action) => {
         state.user = action.payload;
         state.isAuthenticated = true;
-        state.loading = false;
+        state.isAuthLoading = false;
       })
       .addCase(signup.rejected, (state, action) => {
         state.error = action.payload;
-        state.loading = false;
+        state.isAuthLoading = false;
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
-        state.loading = false;
+        state.isAuthLoading = false;
       });
   },
 });

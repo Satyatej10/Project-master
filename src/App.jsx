@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -8,7 +8,6 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 
-// Utility function to serialize Firebase User object
 const serializeUser = (user) => ({
   uid: user.uid,
   email: user.email,
@@ -18,17 +17,37 @@ const serializeUser = (user) => ({
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  console.log('isAuthenticated:', isAuthenticated);
+  const isAuthLoading = useSelector((state) => state.auth.isAuthLoading);
+
+  if (isAuthLoading) {
+    return <div>Loading...</div>;
+  }
+
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 const App = () => {
   const dispatch = useDispatch();
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  // Initialize auth state and persist Firebase login
   useEffect(() => {
+    // Check for persisted user in localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      dispatch(setUser(JSON.parse(storedUser)));
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      dispatch(setUser(user ? serializeUser(user) : null));
+      if (user) {
+        const serializedUser = serializeUser(user);
+        dispatch(setUser(serializedUser));
+      } else {
+        dispatch(setUser(null));
+      }
+      setIsAuthLoading(false);
     });
+
     return () => unsubscribe();
   }, [dispatch]);
 

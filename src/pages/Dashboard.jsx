@@ -1,8 +1,5 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase';
-import { setUser, logout } from '../redux/authSlice'; // Added logout import
 import { fetchItems } from '../redux/itemsSlice';
 import { fetchOtherCosts } from '../redux/otherCostsSlice';
 import { setCostThreshold, resetCostThreshold } from '../redux/filterSlice';
@@ -35,6 +32,8 @@ import ItemList from '../components/ItemList';
 import OtherCostForm from '../components/OtherCostForm';
 import OtherCostList from '../components/OtherCostList';
 import TotalCost from '../components/TotalCost';
+import { logout } from '../redux/authSlice';
+import { auth } from '../firebase';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
@@ -44,7 +43,7 @@ const Dashboard = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { user } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, isAuthLoading } = useSelector((state) => state.auth);
   const { items } = useSelector((state) => state.items);
   const { otherCosts } = useSelector((state) => state.otherCosts);
   const { costThreshold } = useSelector((state) => state.filters);
@@ -53,34 +52,25 @@ const Dashboard = () => {
   const totalOtherCosts = otherCosts.reduce((sum, cost) => sum + cost.amount, 0);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        dispatch(
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName || null,
-            photoURL: firebaseUser.photoURL || null,
-          })
-        );
-        const unsubscribeItems = dispatch(fetchItems(firebaseUser.uid));
-        const unsubscribeOtherCosts = dispatch(fetchOtherCosts(firebaseUser.uid));
-        return () => {
-          if (typeof unsubscribeItems === 'function') unsubscribeItems();
-          if (typeof unsubscribeOtherCosts === 'function') unsubscribeOtherCosts();
-        };
-      } else {
-        dispatch(setUser(null));
-        navigate('/login');
-      }
-    });
-    return () => unsubscribeAuth();
-  }, [dispatch, navigate]);
+    if (!isAuthLoading && user && isAuthenticated) {
+      // Fetch user-specific data
+      dispatch(fetchItems(user.uid));
+      dispatch(fetchOtherCosts(user.uid));
+    } else if (!isAuthLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [dispatch, navigate, user, isAuthenticated, isAuthLoading]);
 
   const handleLogout = () => {
-    dispatch(logout());
-    toast({ title: 'Logged out', status: 'info', duration: 3000 });
-    navigate('/login');
+    auth.signOut()
+      .then(() => {
+        dispatch(logout());
+        toast({ title: 'Logged out', status: 'info', duration: 3000 });
+        navigate('/login');
+      })
+      .catch((error) => {
+        toast({ title: 'Logout failed', description: error.message, status: 'error', duration: 3000 });
+      });
   };
 
   const handleFilterChange = (value) => {
@@ -137,6 +127,11 @@ const Dashboard = () => {
     },
   };
 
+  // Show loading UI while auth state is being resolved
+  if (isAuthLoading) {
+    return <Box p={6}>Loading...</Box>;
+  }
+
   return (
     <Box p={6} maxW="1200px" mx="auto" bg="gray.50" borderRadius="md" boxShadow="md">
       <Flex justify="space-between" mb={6} align="center">
@@ -173,16 +168,12 @@ const Dashboard = () => {
 
       <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
         <GridItem>
-          <Heading size="md" mb={4} color="teal.600">
-            Items
-          </Heading>
+          <Heading size="md" mb={4} color="teal.600">Items</Heading>
           <ItemForm />
           <ItemList />
         </GridItem>
         <GridItem>
-          <Heading size="md" mb={4} color="teal.600">
-            Other Costs
-          </Heading>
+          <Heading size="md" mb={4} color="teal.600">Other Costs</Heading>
           <OtherCostForm />
           <OtherCostList />
         </GridItem>
