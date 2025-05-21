@@ -16,6 +16,7 @@ import {
 const ItemForm = () => {
   const [name, setName] = useState('');
   const [cost, setCost] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // Add isSubmitting
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const { loading } = useSelector((state) => state.items);
@@ -27,9 +28,15 @@ const ItemForm = () => {
 
   const handleSubmit = async () => {
     if (!isFormValid) {
-      toast({ title: 'Invalid input', description: 'Name and positive cost required', status: 'error', duration: 3000 });
+      toast({
+        title: 'Invalid input',
+        description: 'Name and positive cost required',
+        status: 'error',
+        duration: 3000,
+      });
       return;
     }
+    setIsSubmitting(true);
     try {
       await dispatch(addItem({ userId: user.uid, name, cost: Number(cost) })).unwrap();
       toast({ title: 'Item added', status: 'success', duration: 3000 });
@@ -37,6 +44,8 @@ const ItemForm = () => {
       setCost('');
     } catch (error) {
       toast({ title: 'Error', description: error.message, status: 'error', duration: 3000 });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -71,8 +80,8 @@ const ItemForm = () => {
       <Button
         colorScheme="teal"
         onClick={handleSubmit}
-        isLoading={loading}
-        isDisabled={!isFormValid}
+        isLoading={loading || isSubmitting}
+        isDisabled={!isFormValid || isSubmitting}
         w="full"
       >
         Add Item

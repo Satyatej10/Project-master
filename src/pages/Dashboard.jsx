@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
-import { setUser } from '../redux/authSlice';
+import { setUser, logout } from '../redux/authSlice'; // Added logout import
 import { fetchItems } from '../redux/itemsSlice';
 import { fetchOtherCosts } from '../redux/otherCostsSlice';
 import { setCostThreshold, resetCostThreshold } from '../redux/filterSlice';
@@ -25,6 +25,7 @@ import {
   ModalCloseButton,
   ModalBody,
   HStack,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { Pie } from 'react-chartjs-2';
@@ -52,22 +53,28 @@ const Dashboard = () => {
   const totalOtherCosts = otherCosts.reduce((sum, cost) => sum + cost.amount, 0);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        dispatch(setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName || null,
-          photoURL: firebaseUser.photoURL || null,
-        }));
-        dispatch(fetchItems(firebaseUser.uid));
-        dispatch(fetchOtherCosts(firebaseUser.uid));
+        dispatch(
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName || null,
+            photoURL: firebaseUser.photoURL || null,
+          })
+        );
+        const unsubscribeItems = dispatch(fetchItems(firebaseUser.uid));
+        const unsubscribeOtherCosts = dispatch(fetchOtherCosts(firebaseUser.uid));
+        return () => {
+          if (typeof unsubscribeItems === 'function') unsubscribeItems();
+          if (typeof unsubscribeOtherCosts === 'function') unsubscribeOtherCosts();
+        };
       } else {
         dispatch(setUser(null));
         navigate('/login');
       }
     });
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, [dispatch, navigate]);
 
   const handleLogout = () => {
@@ -79,7 +86,12 @@ const Dashboard = () => {
   const handleFilterChange = (value) => {
     const threshold = parseFloat(value) || 0;
     dispatch(setCostThreshold(threshold));
-    toast({ title: 'Filter applied', description: `Showing costs ≥ $${threshold.toFixed(2)}`, status: 'info', duration: 2000 });
+    toast({
+      title: 'Filter applied',
+      description: `Showing costs ≥ $${threshold.toFixed(2)}`,
+      status: 'info',
+      duration: 2000,
+    });
   };
 
   const handleResetFilter = () => {
@@ -129,7 +141,9 @@ const Dashboard = () => {
     <Box p={6} maxW="1200px" mx="auto" bg="gray.50" borderRadius="md" boxShadow="md">
       <Flex justify="space-between" mb={6} align="center">
         <Heading size="lg" color="teal.600">Project Cost Tracker</Heading>
-        <Button colorScheme="red" onClick={handleLogout}>Logout</Button>
+        <Button colorScheme="red" onClick={handleLogout}>
+          Logout
+        </Button>
       </Flex>
 
       <Flex mb={6} wrap="wrap" gap={4} align="center">
@@ -143,7 +157,9 @@ const Dashboard = () => {
                 aria-label="Minimum cost filter"
               />
             </NumberInput>
-            <Button colorScheme="gray" onClick={handleResetFilter}>Reset</Button>
+            <Button colorScheme="gray" onClick={handleResetFilter}>
+              Reset
+            </Button>
           </HStack>
         </FormControl>
         <Button colorScheme="teal" onClick={onOpen} aria-label="View cost summary chart">
@@ -157,12 +173,16 @@ const Dashboard = () => {
 
       <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
         <GridItem>
-          <Heading size="md" mb={4} color="teal.600">Items</Heading>
+          <Heading size="md" mb={4} color="teal.600">
+            Items
+          </Heading>
           <ItemForm />
           <ItemList />
         </GridItem>
         <GridItem>
-          <Heading size="md" mb={4} color="teal.600">Other Costs</Heading>
+          <Heading size="md" mb={4} color="teal.600">
+            Other Costs
+          </Heading>
           <OtherCostForm />
           <OtherCostList />
         </GridItem>

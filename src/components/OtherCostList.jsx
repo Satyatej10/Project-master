@@ -16,6 +16,8 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  FormControl,
+    FormLabel,
   Input,
   NumberInput,
   NumberInputField,
