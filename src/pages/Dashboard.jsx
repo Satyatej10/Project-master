@@ -23,6 +23,11 @@ import {
   ModalBody,
   HStack,
   useDisclosure,
+  Divider,
+  Card,
+  CardHeader,
+  CardBody,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { Pie } from 'react-chartjs-2';
@@ -51,9 +56,13 @@ const Dashboard = () => {
   const totalItemsCost = items.reduce((sum, item) => sum + item.cost, 0);
   const totalOtherCosts = otherCosts.reduce((sum, cost) => sum + cost.amount, 0);
 
+  const bgGradient = useColorModeValue(
+    'linear(to-br, gray.50, gray.100)',
+    'linear(to-br, gray.800, gray.900)'
+  );
+
   useEffect(() => {
     if (!isAuthLoading && user && isAuthenticated) {
-      // Fetch user-specific data
       dispatch(fetchItems(user.uid));
       dispatch(fetchOtherCosts(user.uid));
     } else if (!isAuthLoading && !isAuthenticated) {
@@ -89,14 +98,13 @@ const Dashboard = () => {
     toast({ title: 'Filter reset', status: 'info', duration: 2000 });
   };
 
-  // Chart data and options
   const chartData = {
     labels: ['Items', 'Other Costs'],
     datasets: [
       {
         data: [totalItemsCost, totalOtherCosts],
-        backgroundColor: ['#4FD1C5', '#F56565'],
-        borderColor: ['#2C7A7B', '#C53030'],
+        backgroundColor: ['#6366F1', '#06B6D4'],
+        borderColor: ['#4F46E5', '#0891B2'],
         borderWidth: 1,
       },
     ],
@@ -107,15 +115,23 @@ const Dashboard = () => {
     plugins: {
       legend: {
         position: 'top',
-        labels: { color: '#333' },
+        labels: { 
+          color: useColorModeValue('#1A202C', '#E2E8F0'),
+          font: { size: 14 }
+        },
       },
       title: {
         display: true,
         text: 'Cost Breakdown',
-        color: '#333',
-        font: { size: 18 },
+        color: useColorModeValue('#1A202C', '#E2E8F0'),
+        font: { size: 18, weight: 'bold' },
       },
       tooltip: {
+        backgroundColor: useColorModeValue('#FFFFFF', '#2D3748'),
+        titleColor: useColorModeValue('#1A202C', '#E2E8F0'),
+        bodyColor: useColorModeValue('#1A202C', '#E2E8F0'),
+        borderColor: useColorModeValue('#E2E8F0', '#4A5568'),
+        borderWidth: 1,
         callbacks: {
           label: function (context) {
             let label = context.label || '';
@@ -127,68 +143,115 @@ const Dashboard = () => {
     },
   };
 
-  // Show loading UI while auth state is being resolved
   if (isAuthLoading) {
-    return <Box p={6}>Loading...</Box>;
+    return (
+      <Flex minH="100vh" align="center" justify="center" bg={bgGradient}>
+        <Box p-6>Loading...</Box>
+      </Flex>
+    );
   }
 
   return (
-    <Box p={6} maxW="1200px" mx="auto" bg="gray.50" borderRadius="md" boxShadow="md">
-      <Flex justify="space-between" mb={6} align="center">
-        <Heading size="lg" color="teal.600">Project Cost Tracker</Heading>
-        <Button colorScheme="red" onClick={handleLogout}>
-          Logout
-        </Button>
-      </Flex>
+    <Box minH="100vh" bg={bgGradient} p={6}>
+      <Box maxW="1400px" mx="auto">
+        <Flex justify="space-between" mb={8} align="center">
+          <Heading size="xl" fontWeight="extrabold" bgGradient="linear(to-r, indigo.600, cyan.600)" bgClip="text">
+            Project Cost Tracker
+          </Heading>
+          <Button 
+            colorScheme="red" 
+            onClick={handleLogout}
+            variant="outline"
+            size="lg"
+          >
+            Logout
+          </Button>
+        </Flex>
 
-      <Flex mb={6} wrap="wrap" gap={4} align="center">
-        <FormControl maxW={{ base: 'full', md: '300px' }}>
-          <FormLabel>Filter by Minimum Cost</FormLabel>
-          <HStack>
-            <NumberInput min={0} value={costThreshold} onChange={handleFilterChange} w="full">
-              <NumberInputField
-                placeholder="Enter minimum cost"
-                focusBorderColor="teal.500"
-                aria-label="Minimum cost filter"
-              />
-            </NumberInput>
-            <Button colorScheme="gray" onClick={handleResetFilter}>
-              Reset
-            </Button>
-          </HStack>
-        </FormControl>
-        <Button colorScheme="teal" onClick={onOpen} aria-label="View cost summary chart">
-          View Cost Summary
-        </Button>
-      </Flex>
-
-      <Box mb={6}>
         <TotalCost />
+
+        <Card mb={8} boxShadow="lg" borderRadius="xl">
+          <CardHeader>
+            <Flex justify="space-between" align="center">
+              <Heading size="md">Filters & Controls</Heading>
+              <Button 
+                colorScheme="indigo" 
+                onClick={onOpen}
+                leftIcon={<i className="fas fa-chart-pie"></i>}
+                variant="outline"
+              >
+                Cost Summary
+              </Button>
+            </Flex>
+          </CardHeader>
+          <CardBody>
+            <Flex wrap="wrap" gap={6} align="center">
+              <FormControl maxW={{ base: 'full', md: '300px' }}>
+                <FormLabel fontWeight="semibold">Minimum Cost Filter</FormLabel>
+                <HStack>
+                  <NumberInput 
+                    min={0} 
+                    value={costThreshold} 
+                    onChange={handleFilterChange}
+                    w="full"
+                  >
+                    <NumberInputField
+                      placeholder="Enter minimum cost"
+                      focusBorderColor="indigo.500"
+                      aria-label="Minimum cost filter"
+                    />
+                  </NumberInput>
+                  <Button 
+                    colorScheme="gray" 
+                    onClick={handleResetFilter}
+                    variant="outline"
+                  >
+                    Reset
+                  </Button>
+                </HStack>
+              </FormControl>
+            </Flex>
+          </CardBody>
+        </Card>
+
+        <Grid templateColumns={{ base: '1fr', lg: 'repeat(2, 1fr)' }} gap={8}>
+          <GridItem>
+            <Card boxShadow="lg" borderRadius="xl">
+              <CardHeader>
+                <Heading size="md" fontWeight="semibold">Items</Heading>
+              </CardHeader>
+              <CardBody>
+                <ItemForm />
+                <Divider my={6} />
+                <ItemList />
+              </CardBody>
+            </Card>
+          </GridItem>
+          <GridItem>
+            <Card boxShadow="lg" borderRadius="xl">
+              <CardHeader>
+                <Heading size="md" fontWeight="semibold">Other Costs</Heading>
+              </CardHeader>
+              <CardBody>
+                <OtherCostForm />
+                <Divider my={6} />
+                <OtherCostList />
+              </CardBody>
+            </Card>
+          </GridItem>
+        </Grid>
+
+        <Modal isOpen={isOpen} onClose={onClose} size="lg">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader fontSize="xl" fontWeight="bold">Cost Breakdown</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody pb={6}>
+              <Pie data={chartData} options={chartOptions} />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
       </Box>
-
-      <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
-        <GridItem>
-          <Heading size="md" mb={4} color="teal.600">Items</Heading>
-          <ItemForm />
-          <ItemList />
-        </GridItem>
-        <GridItem>
-          <Heading size="md" mb={4} color="teal.600">Other Costs</Heading>
-          <OtherCostForm />
-          <OtherCostList />
-        </GridItem>
-      </Grid>
-
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Cost Breakdown</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <Pie data={chartData} options={chartOptions} />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
     </Box>
   );
 };

@@ -1,5 +1,6 @@
 import { useSelector } from 'react-redux';
-import { Stat, StatLabel, StatNumber, Box } from '@chakra-ui/react';
+import { Stat, StatLabel, StatNumber, Box, Card, CardBody, Flex, Icon } from '@chakra-ui/react';
+import { FiDollarSign } from 'react-icons/fi';
 
 const TotalCost = () => {
   const totalCost = useSelector((state) =>
@@ -8,10 +9,17 @@ const TotalCost = () => {
   );
 
   return (
-    <Box bg="white" p={4} borderRadius="md" boxShadow="sm">
+    <Box>
       <Stat>
-        <StatLabel color="teal.600" fontWeight="bold">Total Project Cost</StatLabel>
-        <StatNumber color="teal.600">${totalCost.toFixed(2)}</StatNumber>
+        <Flex align="center">
+          <Icon as={FiDollarSign} boxSize={6} color="blue.500" mr={2} />
+          <Box>
+            <StatLabel fontSize="sm" color="gray.600">Total Project Cost</StatLabel>
+            <StatNumber fontSize="2xl" color="blue.600" fontWeight="bold">
+              ${totalCost.toFixed(2)}
+            </StatNumber>
+          </Box>
+        </Flex>
       </Stat>
     </Box>
   );
